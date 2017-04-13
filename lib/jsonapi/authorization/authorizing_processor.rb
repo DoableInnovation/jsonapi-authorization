@@ -151,15 +151,29 @@ module JSONAPI
       end
 
       def authorize_create_to_many_relationship
-        source_record = @resource_klass.find_by_key(
+        source_resource = @resource_klass.find_by_key(
           params[:resource_id],
           context: context
-        )._model
+        )
+        source_record = source_resource._model
 
         relationship_type = params[:relationship_type].to_sym
-        related_models = model_class_for_relationship(relationship_type).find(params[:data])
 
-        authorizer.create_to_many_relationship(source_record, related_models, relationship_type)
+        related_resources = @resource_klass
+          ._relationship(relationship_type)
+          .resource_klass
+          .find_by_keys(
+            params[:associated_keys],
+            context: context
+          )
+
+        related_records = related_resources.map(&:_model)
+
+        authorizer.remove_to_many_relationship(
+          source_record,
+          related_records,
+          relationship_type
+        )
       end
 
       def authorize_replace_to_many_relationship
